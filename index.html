@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Valentine?</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at top, #fff7ed 0%, #ffe4e6 30%, #e0f2fe 70%, #ffffff 100%);
+      overflow: hidden;
+    }
+
+    .card {
+      width: min(560px, 92vw);
+      padding: 30px 22px 22px;
+      border: 1px solid rgba(255,255,255,.6);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.10);
+      text-align: center;
+      background: linear-gradient(180deg, rgba(255,255,255,.92), rgba(255,255,255,.78));
+      backdrop-filter: blur(8px);
+    }
+
+    h1 {
+      margin: 0 0 14px;
+      font-size: 30px;
+      letter-spacing: 0.2px;
+      color: #111827;
+    }
+
+    .sub {
+      margin: 0 0 14px;
+      font-size: 15px;
+      color: #374151;
+    }
+
+    .btns {
+      position: relative;
+      height: 150px;
+      margin-top: 8px;
+      display: grid;
+      place-items: center;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      padding: 14px 24px;
+      border-radius: 999px;
+      font-size: 18px;
+      cursor: pointer;
+      user-select: none;
+      box-shadow: 0 12px 26px rgba(0,0,0,.12);
+      transition: transform .12s ease, filter .2s ease;
+    }
+
+    button:hover { filter: brightness(1.03); }
+    button:active { transform: scale(0.98); }
+
+    #yes { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; }
+    #no  { background: linear-gradient(135deg, #fb7185, #ef4444); color: #fff; }
+
+    .abs {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .msg {
+      margin-top: 14px;
+      font-size: 18px;
+      min-height: 26px;
+      color: #111827;
+    }
+
+    .videoWrap {
+      margin-top: 16px;
+      display: none;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 14px 40px rgba(0,0,0,.18);
+      border: 1px solid rgba(0,0,0,.06);
+    }
+
+    .videoWrap iframe {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 0;
+      display: block;
+    }
+
+    /* Falling hearts */
+    .hearts {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 10;
+      display: none;
+    }
+
+    .heart {
+      position: absolute;
+      top: -40px;
+      font-size: 22px;
+      filter: drop-shadow(0 10px 10px rgba(0,0,0,.08));
+      animation: fall linear forwards;
+      opacity: 0.95;
+    }
+
+    @keyframes fall {
+      0%   { transform: translateY(-40px) rotate(0deg); opacity: 0; }
+      8%   { opacity: 1; }
+      100% { transform: translateY(calc(100vh + 60px)) rotate(260deg); opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="hearts" id="hearts"></div>
+
+  <div class="card">
+    <h1>Will you be Soham’s Valentine? 💘</h1>
+    <p class="sub">Choose wisely. The city watches.</p>
+
+    <div class="btns" id="arena">
+      <button id="yes" class="abs" type="button">Yes</button>
+      <button id="no"  class="abs" type="button">No</button>
+    </div>
+
+    <div class="msg" id="msg"></div>
+
+    <div class="videoWrap" id="videoWrap">
+      <iframe
+        id="yt"
+        title="Coldplay - Yellow"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        allowfullscreen
+      ></iframe>
+    </div>
+  </div>
+
+  <script>
+    const arena = document.getElementById("arena");
+    const yesBtn = document.getElementById("yes");
+    const noBtn  = document.getElementById("no");
+    const msg    = document.getElementById("msg");
+    const videoWrap = document.getElementById("videoWrap");
+    const yt = document.getElementById("yt");
+    const heartsLayer = document.getElementById("hearts");
+
+    // initial positions inside the arena
+    const pos = {
+      yes: { x: 0.35, y: 0.55 }, // as fractions of arena
+      no:  { x: 0.65, y: 0.55 }
+    };
+
+    function place(btn, p) {
+      const r = arena.getBoundingClientRect();
+      const x = p.x * r.width;
+      const y = p.y * r.height;
+      btn.style.left = `${x}px`;
+      btn.style.top  = `${y}px`;
+    }
+
+    function placeAll() {
+      place(yesBtn, pos.yes);
+      place(noBtn, pos.no);
+    }
+
+    function swapButtons() {
+      const tmp = { ...pos.yes };
+      pos.yes = { ...pos.no };
+      pos.no  = tmp;
+      placeAll();
+    }
+
+    function distToButtonCenter(btn, clientX, clientY) {
+      const b = btn.getBoundingClientRect();
+      const cx = b.left + b.width / 2;
+      const cy = b.top + b.height / 2;
+      const dx = clientX - cx;
+      const dy = clientY - cy;
+      return Math.hypot(dx, dy);
+    }
+
+    function handleMove(e) {
+      const d = distToButtonCenter(noBtn, e.clientX, e.clientY);
+      const threshold = 90;
+      if (d < threshold) swapButtons();
+    }
+
+    arena.addEventListener("mousemove", handleMove);
+    arena.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      if (!t) return;
+      const d = distToButtonCenter(noBtn, t.clientX, t.clientY);
+      if (d < 110) swapButtons();
+    }, { passive: true });
+
+    // Hearts animation helpers
+    const heartEmojis = ["💛", "💖", "💘", "💕", "💞", "❤️"];
+    let heartsTimer = null;
+
+    function spawnHeart(side) {
+      const h = document.createElement("div");
+      h.className = "heart";
+      h.textContent = heartEmojis[Math.floor(Math.random() * heartEmojis.length)];
+
+      const x = side === "left"
+        ? Math.random() * 12
+        : (window.innerWidth - 12 - Math.random() * 12);
+
+      h.style.left = `${x}px`;
+
+      const dur = 2.8 + Math.random() * 2.2;
+      h.style.animationDuration = `${dur}s`;
+
+      const size = 18 + Math.floor(Math.random() * 18);
+      h.style.fontSize = `${size}px`;
+
+      heartsLayer.appendChild(h);
+
+      h.addEventListener("animationend", () => h.remove());
+    }
+
+    function startHearts() {
+      heartsLayer.style.display = "block";
+      if (heartsTimer) clearInterval(heartsTimer);
+
+      heartsTimer = setInterval(() => {
+        spawnHeart("left");
+        spawnHeart("right");
+      }, 160);
+    }
+
+    function stopHearts() {
+      if (heartsTimer) clearInterval(heartsTimer);
+      heartsTimer = null;
+    }
+
+    yesBtn.addEventListener("click", () => {
+      msg.textContent = "YAYYY 😭💞 Best decision ever.";
+
+      // Stop the swapping once yes is clicked
+      arena.removeEventListener("mousemove", handleMove);
+      noBtn.disabled = true;
+      noBtn.style.opacity = 0.6;
+      noBtn.style.cursor = "not-allowed";
+
+      // Show YouTube embed (autoplay may be blocked by the browser)
+      // Coldplay - Yellow (official video) video id: yKNxeF4KMsY
+      yt.src = "https://www.youtube.com/embed/yKNxeF4KMsY?autoplay=1&mute=0&rel=0";
+      videoWrap.style.display = "block";
+
+      // Start falling emojis on the sides
+      startHearts();
+    });
+
+    noBtn.addEventListener("click", () => swapButtons());
+    window.addEventListener("resize", placeAll);
+
+    // start
+    placeAll();
+  </script>
+</body>
+</html>
